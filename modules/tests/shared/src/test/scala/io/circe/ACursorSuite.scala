@@ -309,7 +309,15 @@ class ACursorSuite extends CirceMunitSuite {
     val json: Json =
       Json.obj(
         "a" -> Json.arr(Json.fromString("string"), Json.obj("b" -> Json.fromInt(1))),
-        "c" -> Json.fromBoolean(true)
+        "c" -> Json.fromBoolean(true),
+        "d" -> JsonObject.fromMap(Map("e" -> Json.JNull)).asJson,
+        "e" -> JsonObject.fromMap(Map("f" -> Json.arr(Json.JNull))).asJson,
+        "f" -> Json.arr(
+          JsonObject.fromMap(Map("g" -> JsonObject.fromMap(Map("h" -> Json.arr(Json.Null))).asJson)).asJson
+        ),
+        "g" -> Json.arr(
+          JsonObject.fromMap(Map("g" -> JsonObject.fromMap(Map("h" -> Json.arr())).asJson)).asJson
+        )
       )
     val c: ACursor = HCursor.fromJson(json)
 
@@ -336,6 +344,26 @@ class ACursorSuite extends CirceMunitSuite {
     assertEquals(
       c.downField("a").downN(1).downField("b").up.left.right.left.pathString,
       ".a[0]"
+    )
+
+    assertEquals(
+      c.downField("d").downField("e").pathString,
+      ".d.e"
+    )
+
+    assertEquals(
+      c.downField("e").downField("f").downArray.pathString,
+      ".e.f[0]"
+    )
+
+    assertEquals(
+      c.downField("f").downArray.downField("g").downField("h").downArray.pathString,
+      ".f[0].g.h[0]"
+    )
+
+    assertEquals(
+      c.downField("g").downArray.downField("g").downField("h").downArray.pathString,
+      ".g[0].g.h[0]"
     )
   }
 }
