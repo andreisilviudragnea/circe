@@ -15,9 +15,11 @@ import cats.data.{
 }
 import cats.syntax.either._
 import cats.data.Validated.{ Invalid, Valid }
+import cats.implicits.catsSyntaxEq
 import cats.instances.either.{ catsStdInstancesForEither, catsStdSemigroupKForEither }
 import cats.kernel.Order
 import io.circe.`export`.Exported
+
 import java.io.Serializable
 import java.net.{ URI, URISyntaxException }
 import java.time.{
@@ -40,7 +42,6 @@ import java.time.{
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.UUID
-
 import io.circe.DecodingFailure.Reason.{ MissingField, WrongTypeExpectation }
 
 import scala.annotation.tailrec
@@ -623,7 +624,7 @@ object Decoder
     final def apply(c: HCursor): Result[Unit] = c.value match {
       case Json.JObject(obj) if obj.isEmpty => Right(())
       case Json.JArray(arr) if arr.isEmpty  => Right(())
-      case other if other.isNull            => Right(())
+      case Json.JNull                       => Right(())
       case json =>
         Left(DecodingFailure(WrongTypeExpectation("'null' or '[]' or '{}'", json), c.history))
     }
@@ -681,8 +682,8 @@ object Decoder
           case Some(v) => Right(v)
           case None    => fail(c)
         }
-      case other if other.isNull => Right(Float.NaN)
-      case _                     => fail(c)
+      case Json.JNull => Right(Float.NaN)
+      case _          => fail(c)
     }
   }
 
@@ -710,8 +711,8 @@ object Decoder
           case Some(v) => Right(v)
           case None    => fail(c)
         }
-      case other if other.isNull => Right(Double.NaN)
-      case _                     => fail(c)
+      case Json.JNull => Right(Double.NaN)
+      case _          => fail(c)
     }
   }
 
@@ -968,7 +969,7 @@ object Decoder
 
     final override def tryDecode(c: ACursor): Decoder.Result[Option[A]] = c match {
       case c: HCursor =>
-        if (c.value.isNull) rightNone
+        if (c.value === Json.JNull) rightNone
         else
           A(c) match {
             case Right(a) => Right(Some(a))
@@ -983,7 +984,7 @@ object Decoder
 
     final override def tryDecodeAccumulating(c: ACursor): AccumulatingResult[Option[A]] = c match {
       case c: HCursor =>
-        if (c.value.isNull) validNone
+        if (c.value === Json.JNull) validNone
         else
           A.decodeAccumulating(c) match {
             case Valid(a)       => Valid(Some(a))
@@ -1009,13 +1010,13 @@ object Decoder
    * @group Decoding
    */
   implicit final val decodeNone: Decoder[None.type] = new Decoder[None.type] {
-    final def apply(c: HCursor): Result[None.type] = if (c.value.isNull) Right(None)
+    final def apply(c: HCursor): Result[None.type] = if (c.value === Json.JNull) Right(None)
     else {
       Left(DecodingFailure(WrongTypeExpectation("null", c.value), c.history))
     }
     final override def tryDecode(c: ACursor): Decoder.Result[None.type] = c match {
       case c: HCursor =>
-        if (c.value.isNull) rightNone
+        if (c.value === Json.JNull) rightNone
         else Left(DecodingFailure(WrongTypeExpectation("null", c.value), c.history))
       case c: FailedCursor =>
         if (!c.incorrectFocus) keyMissingNone
@@ -1024,7 +1025,7 @@ object Decoder
 
     final override def tryDecodeAccumulating(c: ACursor): AccumulatingResult[None.type] = c match {
       case c: HCursor =>
-        if (c.value.isNull) validNone
+        if (c.value === Json.JNull) validNone
         else Validated.invalidNel(DecodingFailure(WrongTypeExpectation("null", c.value), c.history))
       case c: FailedCursor =>
         if (!c.incorrectFocus) keyMissingNoneAccumulating

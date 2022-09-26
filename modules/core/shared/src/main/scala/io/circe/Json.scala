@@ -1,7 +1,9 @@
 package io.circe
 
+import cats.implicits.catsSyntaxEq
 import cats.{ Eq, Show }
 import io.circe.numbers.BiggerDecimal
+
 import java.io.Serializable
 import scala.collection.mutable.ListBuffer
 
@@ -61,6 +63,7 @@ sealed abstract class Json extends Product with Serializable {
    */
   final def hcursor: HCursor = HCursor.fromJson(this)
 
+  @deprecated
   def isNull: Boolean
   def isBoolean: Boolean
   def isNumber: Boolean
@@ -174,7 +177,7 @@ sealed abstract class Json extends Product with Serializable {
    *
    * Note that this does not apply recursively.
    */
-  def dropNullValues: Json = this.mapObject(_.filter { case (_, v) => !v.isNull })
+  def dropNullValues: Json = this.mapObject(_.filter { case (_, v) => v =!= JNull })
 
   /**
    * Drop the entries with a null value if this is an object or array.
@@ -187,11 +190,11 @@ sealed abstract class Json extends Product with Serializable {
       def onString(value: String): Json = Json.fromString(value)
       def onArray(value: Vector[Json]): Json =
         Json.fromValues(value.collect {
-          case v if !v.isNull => v.foldWith(this)
+          case v if v =!= JNull => v.foldWith(this)
         })
       def onObject(value: JsonObject): Json =
         Json.fromJsonObject(
-          value.filter { case (_, v) => !v.isNull }.mapValues(_.foldWith(this))
+          value.filter { case (_, v) => v =!= JNull }.mapValues(_.foldWith(this))
         )
     }
 
@@ -594,7 +597,7 @@ object Json {
     case (JNumber(a), JNumber(b))   => JsonNumber.eqJsonNumber.eqv(a, b)
     case (JBoolean(a), JBoolean(b)) => a == b
     case (JArray(a), JArray(b))     => arrayEq(a, b)
-    case (x, y)                     => x.isNull && y.isNull
+    case (x, y)                     => (x eq JNull) && (y eq JNull)
   }
 
   implicit final val showJson: Show[Json] = Show.fromToString[Json]

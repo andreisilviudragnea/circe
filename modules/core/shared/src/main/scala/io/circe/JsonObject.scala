@@ -1,7 +1,9 @@
 package io.circe
 
-import cats.{ Applicative, Eq, Foldable, Show }
+import cats.{Applicative, Eq, Foldable, Show}
 import cats.data.Kleisli
+import cats.implicits.catsSyntaxEq
+
 import java.io.Serializable
 import java.util.LinkedHashMap
 import scala.collection.immutable.Map
@@ -334,7 +336,7 @@ object JsonObject {
         val key = next._1
         val value = next._2
 
-        if (!folder.dropNullValues || !value.isNull) {
+        if (!folder.dropNullValues || value =!= Json.JNull) {
           if (!first) folder.writer.append(p.objectCommas)
           folder.onString(key)
           folder.writer.append(p.colons)
@@ -441,7 +443,7 @@ object JsonObject {
       while (keyIterator.hasNext) {
         val key = keyIterator.next()
         val value = fields(key)
-        if (!folder.dropNullValues || !value.isNull) {
+        if (!folder.dropNullValues || value =!= Json.JNull) {
           if (!first) folder.writer.append(p.objectCommas)
           folder.onString(key)
           folder.writer.append(p.colons)

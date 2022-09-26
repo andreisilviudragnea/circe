@@ -169,7 +169,7 @@ class DecoderSuite extends CirceMunitSuite with LargeNumberDecoderTestsMunit {
                     // The second-level object doesn't contain a "" key, so we should succeed emptily.
                     case None => assertEquals(result, Right(None))
                     // The third-level value is null, so we succeed emptily.
-                    case Some(j3) if j3.isNull => assertEquals(result, Right(None))
+                    case Some(Json.JNull) => assertEquals(result, Right(None))
                     case Some(j3) =>
                       j3.asString match {
                         // The third-level value isn't a string, so we should fail.
@@ -208,7 +208,7 @@ class DecoderSuite extends CirceMunitSuite with LargeNumberDecoderTestsMunit {
                     // The second-level array doesn't have a second element, so we should succeed emptily.
                     case None => assertEquals(result, Right(None))
                     // The third-level value is null, so we succeed emptily.
-                    case Some(j3) if j3.isNull => assertEquals(result, Right(None))
+                    case Some(Json.JNull) => assertEquals(result, Right(None))
                     case Some(j3) =>
                       j3.asString match {
                         // The third-level value isn't a string, so we should fail.
@@ -228,7 +228,7 @@ class DecoderSuite extends CirceMunitSuite with LargeNumberDecoderTestsMunit {
 
     forAll { (json: Json) =>
       val result = decoder.apply(json.hcursor)
-      if (json.isNull)
+      if (json === Json.JNull)
         assertEquals(result, Right(None))
       else
         json.asString match {
