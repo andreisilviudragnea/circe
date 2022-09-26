@@ -33,24 +33,6 @@ class JsonSuite extends CirceMunitSuite with FloatJsonTests {
     assert(result === json.fold(z, b, n, s, a, o))
   }
 
-  property("asNull should give the same result as fold")(asNullProp)
-
-  lazy val asNullProp: Prop = Prop.forAll { (json: Json) =>
-    assert(json.asNull === json.fold(Some(()), _ => None, _ => None, _ => None, _ => None, _ => None))
-  }
-
-  property("asBoolean should give the same result as fold") {
-    forAll { (json: Json) =>
-      json.asBoolean ?= json.fold(None, Some(_), _ => None, _ => None, _ => None, _ => None)
-    }
-  }
-
-  property("asNumber should give the same result as fold") {
-    forAll { (json: Json) =>
-      json.asNumber ?= json.fold(None, _ => None, Some(_), _ => None, _ => None, _ => None)
-    }
-  }
-
   property("asString should give the same result as fold") {
     forAll { (json: Json) =>
       json.asString ?= json.fold(None, _ => None, _ => None, Some(_), _ => None, _ => None)

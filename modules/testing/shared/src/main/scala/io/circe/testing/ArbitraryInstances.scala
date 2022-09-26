@@ -42,9 +42,9 @@ trait ArbitraryInstances extends ArbitraryJsonNumberTransformer with CogenInstan
         Arbitrary.arbitrary[IntegralString].map(input => JsonNumber.fromDecimalStringUnsafe(input.value)),
         Arbitrary.arbitrary[JsonNumberString].map(input => JsonNumber.fromDecimalStringUnsafe(input.value)),
         Arbitrary.arbitrary[BiggerDecimal].map(input => JsonBiggerDecimal(input, input.toString)),
-        Arbitrary.arbitrary[BigDecimal].map(Json.fromBigDecimal(_).asNumber.get),
-        Arbitrary.arbitrary[BigInt].map(Json.fromBigInt(_).asNumber.get),
-        Arbitrary.arbitrary[Long].map(Json.fromLong(_).asNumber.get),
+        Arbitrary.arbitrary[BigDecimal].map(Json.fromBigDecimal(_).value),
+        Arbitrary.arbitrary[BigInt].map(Json.fromBigInt(_).value),
+        Arbitrary.arbitrary[Long].map(Json.fromLong(_).value),
         Arbitrary.arbitrary[Double].map(Json.fromDoubleOrString(_).asNumber.get),
         Arbitrary.arbitrary[Float].map(Json.fromFloatOrString(_).asNumber.get)
       )

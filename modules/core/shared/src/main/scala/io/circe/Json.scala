@@ -65,13 +65,18 @@ sealed abstract class Json extends Product with Serializable {
 
   @deprecated
   def isNull: Boolean
+  @deprecated
   def isBoolean: Boolean
+  @deprecated
   def isNumber: Boolean
+  @deprecated
   def isString: Boolean
   def isArray: Boolean
   def isObject: Boolean
 
+  @deprecated
   def asNull: Option[Unit]
+  @deprecated
   def asBoolean: Option[Boolean]
   def asNumber: Option[JsonNumber]
   def asString: Option[String]
@@ -495,7 +500,7 @@ object Json {
    *
    * Note that this does not parse the argument.
    */
-  final def fromString(value: String): Json = JString(value)
+  final def fromString(value: String): JString = JString(value)
 
   /**
    * Create a `Json` value representing a JSON boolean.
@@ -505,26 +510,26 @@ object Json {
   /**
    * Create a `Json` value representing a JSON number from an `Int`.
    */
-  final def fromInt(value: Int): Json = JNumber(JsonLong(value.toLong))
+  final def fromInt(value: Int): JNumber = JNumber(JsonLong(value.toLong))
 
   /**
    * Create a `Json` value representing a JSON number from a `Long`.
    */
-  final def fromLong(value: Long): Json = JNumber(JsonLong(value))
+  final def fromLong(value: Long): JNumber = JNumber(JsonLong(value))
 
   /**
    * Try to create a `Json` value representing a JSON number from a `Double`.
    *
    * The result is empty if the argument cannot be represented as a JSON number.
    */
-  final def fromDouble(value: Double): Option[Json] = if (isReal(value)) Some(JNumber(JsonDouble(value))) else None
+  final def fromDouble(value: Double): Option[JNumber] = if (isReal(value)) Some(JNumber(JsonDouble(value))) else None
 
   /**
    * Try to create a `Json` value representing a JSON number from a `Float`.
    *
    * The result is empty if the argument cannot be represented as a JSON number.
    */
-  final def fromFloat(value: Float): Option[Json] = if (isReal(value)) Some(JNumber(JsonFloat(value))) else None
+  final def fromFloat(value: Float): Option[JNumber] = if (isReal(value)) Some(JNumber(JsonFloat(value))) else None
 
   /**
    * Create a `Json` value representing a JSON number or null from a `Double`.
@@ -563,14 +568,14 @@ object Json {
   /**
    * Create a `Json` value representing a JSON number from a `BigInt`.
    */
-  final def fromBigInt(value: BigInt): Json = JNumber(
+  final def fromBigInt(value: BigInt): JNumber = JNumber(
     JsonBiggerDecimal(BiggerDecimal.fromBigInteger(value.underlying), value.toString)
   )
 
   /**
    * Create a `Json` value representing a JSON number from a `BigDecimal`.
    */
-  final def fromBigDecimal(value: BigDecimal): Json = JNumber(JsonBigDecimal(value.underlying))
+  final def fromBigDecimal(value: BigDecimal): JNumber = JNumber(JsonBigDecimal(value.underlying))
 
   /**
    * Calling `.isFinite` directly on the value boxes; we explicitly avoid that here.
