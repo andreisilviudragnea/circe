@@ -69,13 +69,13 @@ class AccumulatingDecoderSpec extends CirceMunitSuite {
   }
 
   property("return expected failures in a non-empty list") {
-    forAll { (xs: NonEmptyList[Either[Int, String]]) =>
-      val cursor = xs.map(_.fold(Json.fromInt, Json.fromString)).asJson.hcursor
-      val invalidElems = xs.toList.collect { case Left(e) => Some(e.asJson) }
-      val errors = Decoder[NonEmptyList[String]].decodeAccumulating(cursor).fold(_.toList, _ => Nil)
+    val xs: NonEmptyList[Either[Int, String]] = NonEmptyList.one(Right(""))
+    val cursor = xs.map(_.fold(Json.fromInt, Json.fromString)).asJson.hcursor
+    val invalidElems = xs.toList.collect { case Left(e) => Some(e.asJson) }
+    val errors = Decoder[NonEmptyList[String]].decodeAccumulating(cursor).fold(_.toList, _ => Nil)
 
-      errors.map(df => cursor.replay(df.history).focus) ?= invalidElems
-    }
+    val value = errors.map(df => cursor.replay(df.history).focus)
+    value ?= invalidElems
   }
 
   property("return expected failures in a tuple") {

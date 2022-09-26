@@ -13,18 +13,21 @@ private[circe] abstract class SeqDecoder[A, C[_]](decodeA: Decoder[A]) extends D
 
     if (current.succeeded) {
       val builder = createBuilder()
-      var failed: DecodingFailure = null
+      var failed: Option[DecodingFailure] = None
 
-      while (failed.eq(null) && current.succeeded) {
+      while (failed.isEmpty && current.succeeded) {
         decodeA(current.asInstanceOf[HCursor]) match {
-          case Left(e) => failed = e
+          case Left(e) => failed = Some(e)
           case Right(a) =>
             builder += a
             current = current.right
         }
       }
 
-      if (failed.eq(null)) Right(builder.result()) else Left(failed)
+      failed match {
+        case Some(failed) => Left(failed)
+        case None         => Right(builder.result())
+      }
     } else {
       if (c.value.isArray) Right(createBuilder().result())
       else {
