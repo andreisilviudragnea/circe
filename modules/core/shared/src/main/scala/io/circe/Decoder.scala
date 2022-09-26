@@ -17,7 +17,9 @@ import cats.syntax.either._
 import cats.data.Validated.{ Invalid, Valid }
 import cats.instances.either.{ catsStdInstancesForEither, catsStdSemigroupKForEither }
 import cats.kernel.Order
+import io.circe.DecodingFailure.DecodingFailureImpl
 import io.circe.`export`.Exported
+
 import java.io.Serializable
 import java.net.{ URI, URISyntaxException }
 import java.time.{
@@ -40,7 +42,6 @@ import java.time.{
 import java.time.format.DateTimeFormatter
 import java.util.Currency
 import java.util.UUID
-
 import io.circe.DecodingFailure.Reason.{ MissingField, WrongTypeExpectation }
 
 import scala.annotation.tailrec
@@ -64,18 +65,17 @@ trait Decoder[A] extends Serializable { self =>
   }
 
   private[this] def cursorToDecodingFailure(cursor: ACursor): DecodingFailure = {
-    val reason: Eval[DecodingFailure.Reason] =
-      Eval.later(
-        cursor match {
-          case cursor: FailedCursor if cursor.missingField =>
-            DecodingFailure.Reason.MissingField
-          case _ =>
-            val field: String = cursor.pathString.replaceFirst("^\\.", "")
-            DecodingFailure.Reason.CustomReason(s"Couldn't decode $field")
-        }
-      )
-
-    DecodingFailure(reason, Some(cursor.pathToRoot), Eval.later(cursor.history))
+    DecodingFailureImpl(
+      cursor match {
+        case cursor: FailedCursor if cursor.missingField =>
+          DecodingFailure.Reason.MissingField
+        case _ =>
+          val field: String = cursor.pathString.replaceFirst("^\\.", "")
+          DecodingFailure.Reason.CustomReason(s"Couldn't decode $field")
+      },
+      cursor.pathString,
+      cursor.history
+    )
   }
 
   /**

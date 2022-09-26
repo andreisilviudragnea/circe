@@ -1,7 +1,7 @@
 package io.circe
 
-import cats.instances.all._
-import cats.syntax.eq._
+import cats.data.NonEmptyList
+import cats.implicits._
 import io.circe.syntax._
 import io.circe.tests.CirceMunitSuite
 import org.scalacheck.Prop._
@@ -364,6 +364,18 @@ class ACursorSuite extends CirceMunitSuite {
     assertEquals(
       c.downField("g").downArray.downField("g").downField("h").downArray.pathString,
       ".g[0].g.h[0]"
+    )
+
+    assertEquals(
+      c.downField("g").field("f").downArray.pathString,
+      ".f[0]"
+    )
+
+    assertEquals(
+      Decoder[NonEmptyList[String]].decodeJson(Json.arr(Json.fromString(""), Json.fromInt(1))).leftMap(_.show),
+      Left(
+        "DecodingFailure at [1]: Got value '1' with wrong type, expecting string"
+      )
     )
   }
 }

@@ -44,11 +44,7 @@ object ParsingFailure {
  * An exception representing a decoding failure and (lazily) capturing the
  * decoding history resulting in the failure.
  */
-sealed abstract class DecodingFailure(private val lazyReason: Eval[Reason]) extends Error {
-
-  def this(reason: Reason) = {
-    this(Eval.now(reason))
-  }
+sealed abstract class DecodingFailure(val reason: Reason) extends Error {
 
   @deprecated("use a DecodingFailure.Reason", since = "0.14.3")
   def this(message: String) = {
@@ -61,7 +57,7 @@ sealed abstract class DecodingFailure(private val lazyReason: Eval[Reason]) exte
    * The location in the JSON where the decoding failure occurred. For various
    * reasons, in 0.14.x this may not always be present.
    */
-  def pathToRootString: Option[String] = None
+  def pathToRoot: String
 
   def message: String =
     reason match {
@@ -73,22 +69,8 @@ sealed abstract class DecodingFailure(private val lazyReason: Eval[Reason]) exte
   final override def getMessage: String =
     if (history.isEmpty) message else s"$message: ${history.mkString(",")}"
 
-  final def copy(message: String = message, history: => List[CursorOp] = history): DecodingFailure =
-    DecodingFailure(CustomReason(message), history)
-
   def withMessage(message: String): DecodingFailure =
-    copy(message = message)
-
-  def withReason(reason: Reason): DecodingFailure =
-    DecodingFailure(reason, history)
-
-  def reason: Reason =
-    lazyReason.value
-
-  override final def toString: String =
-    // This should be the same as the Show instance, but we shouldn't change
-    // that until at least 0.15.x.
-    s"DecodingFailure($message, $history)"
+    DecodingFailure(CustomReason(message), history)
 
   override final def equals(that: Any): Boolean = that match {
     case other: DecodingFailure => DecodingFailure.eqDecodingFailure.eqv(this, other)
@@ -98,52 +80,30 @@ sealed abstract class DecodingFailure(private val lazyReason: Eval[Reason]) exte
 }
 
 object DecodingFailure {
-  private[this] final class DecodingFailureImpl(
-    lazyReason: Eval[Reason],
-    pathToRoot: Option[PathToRoot],
-    ops: Eval[List[CursorOp]]
+  private[circe] final case class DecodingFailureImpl(
+    lazyReason: Reason,
+    pathToRoot: String,
+    ops: List[CursorOp]
   ) extends DecodingFailure(lazyReason) {
-    override final def pathToRootString: Option[String] =
-      if (pathToRoot == Some(PathToRoot.empty)) {
-        // For backwards compatibility. We'll make this more consistent in 0.15.x
-        Some("")
-      } else {
-        pathToRoot.orElse(PathToRoot.fromHistory(ops.value).toOption).map(_.asPathString)
-      }
-
-    override final def history: List[CursorOp] = ops.value
+    override final def history: List[CursorOp] = ops
 
     override final def withMessage(message: String): DecodingFailure =
       DecodingFailureImpl(CustomReason(message), pathToRoot, ops)
 
-    override final def withReason(reason: Reason): DecodingFailure =
-      DecodingFailureImpl(Eval.now(reason), pathToRoot, ops)
-  }
-
-  private[this] object DecodingFailureImpl {
-    def apply(reason: Eval[Reason], pathToRoot: Option[PathToRoot], ops: Eval[List[CursorOp]]): DecodingFailure =
-      new DecodingFailureImpl(reason, pathToRoot, ops)
-
-    def apply(reason: Reason, pathToRoot: Option[PathToRoot], ops: Eval[List[CursorOp]]): DecodingFailure =
-      apply(Eval.now(reason), pathToRoot, ops)
+    override final def toString: String =
+      // This should be the same as the Show instance, but we shouldn't change
+      // that until at least 0.15.x.
+      showDecodingFailure.show(this)
   }
 
   def apply(message: String, ops: => List[CursorOp]): DecodingFailure =
-    DecodingFailureImpl(CustomReason(message), None, Eval.later(ops))
+    DecodingFailureImpl(CustomReason(message), CursorOp.opsToPath(ops), ops)
 
   def apply(reason: Reason, ops: => List[CursorOp]): DecodingFailure =
-    DecodingFailureImpl(reason, None, Eval.later(ops))
+    DecodingFailureImpl(reason, CursorOp.opsToPath(ops), ops)
 
   def apply(reason: Reason, cursor: ACursor): DecodingFailure =
-    DecodingFailureImpl(reason, Some(cursor.pathToRoot), Eval.later(cursor.history))
-
-  // Private because this is a work around that needs to go away on 0.15.x.
-  private[circe] def apply(
-    reason: Eval[Reason],
-    pathToRoot: Option[PathToRoot],
-    ops: Eval[List[CursorOp]]
-  ): DecodingFailure =
-    DecodingFailureImpl(reason, pathToRoot, ops)
+    DecodingFailureImpl(reason, cursor.pathString, cursor.history)
 
   def unapply(error: Error): Option[(String, List[CursorOp])] = error match {
     case ParsingFailure(_, _)   => None
@@ -168,11 +128,10 @@ object DecodingFailure {
    * Cursor history is represented as JS style selections, i.e. ".foo.bar[3]"
    */
   implicit final val showDecodingFailure: Show[DecodingFailure] =
-    Show.show(value =>
-      value.pathToRootString.fold(
-        s"DecodingFailure(${value.message}, ${value.history})"
-      )(pathToRootString => s"DecodingFailure at ${pathToRootString}: ${value.message}")
-    )
+    Show.show { value =>
+      val pathToRootString = value.pathToRoot
+      s"DecodingFailure at ${pathToRootString}: ${value.message}"
+    }
 
   sealed abstract class Reason
   object Reason {
